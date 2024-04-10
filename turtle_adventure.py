@@ -326,12 +326,12 @@ class EnemyGenerator:
         # self.game.add_element(new_enemy)
 
         # Random Enemy
-        random_enemy = RandomWalkEnemy(self.__game, 20, "red")
-        if random_enemy.x != 100 and random_enemy.y != 100:
-            random_enemy.x = random.randint(0, 700)
-            random_enemy.y = random.randint(0, 400)
-        self.game.add_element(random_enemy)
-        self.__game.after(500, self.create_enemy)
+        # random_enemy = RandomWalkEnemy(self.__game, 20, "red")
+        # if random_enemy.x != 100 and random_enemy.y != 100:
+        #     random_enemy.x = random.randint(0, 700)
+        #     random_enemy.y = random.randint(0, 400)
+        # self.game.add_element(random_enemy)
+        # self.__game.after(500, self.create_enemy)
 
         # Chasing Enemy
         # chasing_enemy = ChasingEnemy(self.__game, size=20, color="purple")
@@ -342,7 +342,7 @@ class EnemyGenerator:
 
         # Fencing Enemy
         # max_distance_from_home = 25
-        # for _ in range(15):
+        # for i in range(15):
         #     fencing_enemy = FencingEnemy(self.__game, 20, "blue")
         #     # Generate random positions around the home within a certain distance range
         #     if fencing_enemy.x != self.game.home.x and fencing_enemy.y != self.game.home.y:
@@ -354,10 +354,15 @@ class EnemyGenerator:
         #         fencing_enemy.y = random.randint(self.__game.home.y - max_distance_from_home, self.__game.home.y + max_distance_from_home)
         #     self.__game.add_enemy(fencing_enemy)
 
-        # 
-        
-        
-        
+        # Chubby Enemy
+        for _ in range(15):
+            teleporting_enemy = TeleportingEnemy(self.__game, size=20, color="black")
+            if teleporting_enemy.x != 100 and teleporting_enemy.y != 100:
+                teleporting_enemy.x = random.randint(0, self.__game.screen_width)
+                teleporting_enemy.y = random.randint(0, self.__game.screen_height)
+            self.__game.add_enemy(teleporting_enemy)
+        self.__game.after(10, self.create_teleporting_enemy)
+
 class RandomWalkEnemy(Enemy):
     """
     Random enemy that walks in different directions and bounces off edges
@@ -522,12 +527,53 @@ class FencingEnemy(Enemy):
                         self.y + self.size / 2)
 
     def delete(self) -> None:
+        pass    
+
+class TeleportingEnemy(Enemy):
+    """
+    Teleporting Enemy appears near the player or home randomly.
+    """
+
+    def __init__(self, game: "TurtleAdventureGame", size: int, color: str):
+        super().__init__(game, size, color)
+        self.__id = None
+        self.__teleport_cooldown = 60  # Cooldown between teleports (in frames)
+        self.__teleport_counter = 0
+
+    def create(self) -> None:
+        self.__id = self.canvas.create_rectangle(0, 0, 0, 0, fill=self.color)
+
+    def update(self) -> None:
+        self.__teleport_counter += 1
+        if self.__teleport_counter >= self.__teleport_cooldown:
+            self.teleport()
+            self.__teleport_counter = 0
+
+        if self.hits_player():
+            self.game.game_over_lose()
+
+    def render(self) -> None:
+        self.canvas.coords(self.__id,
+                        self.x - self.size / 2,
+                        self.y - self.size / 2,
+                        self.x + self.size / 2,
+                        self.y + self.size / 2)
+
+    def delete(self) -> None:
         pass
 
-class SmartEnemy(Enemy):
-    pass
+    def teleport(self) -> None:
+        """
+        Teleport the enemy near the player or home randomly.
+        """
+        choice = random.choice(["player", "home"])
+        if choice == "player":
+            self.x = self.game.player.x + random.randint(-200, 200)
+            self.y = self.game.player.y + random.randint(-200, 200)
+        else:
+            self.x = self.game.home.x + random.randint(-200, 200)
+            self.y = self.game.home.y + random.randint(-200, 200)
 
-    
 
 class TurtleAdventureGame(Game): # pylint: disable=too-many-ancestors
     """
