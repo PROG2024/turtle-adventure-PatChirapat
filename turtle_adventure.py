@@ -326,19 +326,19 @@ class EnemyGenerator:
         # self.game.add_element(new_enemy)
 
         # Random Enemy
-        # for i in range(10):
-        #     random_enemy = RandomEnemy(self.__game, 20, "red")
-        #     if random_enemy.x != 100 and random_enemy.y != 100:
-        #         random_enemy.x = random.randint(0, 700)
-        #         random_enemy.y = random.randint(0, 400)
-        #     self.game.add_element(random_enemy)
+        random_enemy = RandomWalkEnemy(self.__game, 20, "red")
+        if random_enemy.x != 100 and random_enemy.y != 100:
+            random_enemy.x = random.randint(0, 700)
+            random_enemy.y = random.randint(0, 400)
+        self.game.add_element(random_enemy)
+        self.__game.after(500, self.create_enemy)
 
         # Chasing Enemy
-        chasing_enemy = ChasingEnemy(self.__game, size=20, color="purple")
-        chasing_enemy.x = random.randint(0, self.__game.screen_width)
-        chasing_enemy.y = random.randint(0, self.__game.screen_height)
-        self.__game.add_enemy(chasing_enemy)
-        self.__game.after(2000, self.create_enemy)
+        # chasing_enemy = ChasingEnemy(self.__game, size=20, color="purple")
+        # chasing_enemy.x = random.randint(0, self.__game.screen_width)
+        # chasing_enemy.y = random.randint(0, self.__game.screen_height)
+        # self.__game.add_enemy(chasing_enemy)
+        # self.__game.after(2000, self.create_enemy)
 
         # Fencing Enemy
         # max_distance_from_home = 25
@@ -358,7 +358,7 @@ class EnemyGenerator:
         
         
         
-class RandomEnemy(Enemy):
+class RandomWalkEnemy(Enemy):
     """
     Random enemy that walks in different directions and bounces off edges
     """
