@@ -324,12 +324,21 @@ class EnemyGenerator:
         # new_enemy.y = 100
         # self.game.add_element(new_enemy)
 
-        for i in range(5):
-            random_enemy = RandomEnemy(self.__game, 20, "red")
-            if random_enemy.x != 100 and random_enemy.y != 100:
-                random_enemy.x = random.randint(0, 700)
-                random_enemy.y = random.randint(0, 400)
-            self.game.add_element(random_enemy)
+        # Random Enemy
+        # for i in range(10):
+        #     random_enemy = RandomEnemy(self.__game, 20, "red")
+        #     if random_enemy.x != 100 and random_enemy.y != 100:
+        #         random_enemy.x = random.randint(0, 700)
+        #         random_enemy.y = random.randint(0, 400)
+        #     self.game.add_element(random_enemy)
+
+        # Chasing Enemy
+        for i in range(10):
+            chasing_enemy = ChasingEnemy(self.__game, 20, "orange")
+            if chasing_enemy.x != 100 and chasing_enemy.y != 100:
+                    chasing_enemy.x = random.randint(0, 700)
+                    chasing_enemy.y = random.randint(0, 400)
+            self.game.add_element(chasing_enemy)
 
 
 class RandomEnemy(Enemy):
@@ -412,8 +421,37 @@ class ChasingEnemy(Enemy):
         self.__id = self.canvas.create_oval(0, 0, 0, 0, fill=self.color)
 
     def update(self) -> None:
-        pass
-        #in progress
+        player_x = self.game.player.x
+        player_y = self.game.player.y
+        enemy_speed = 2
+
+        # x and y coordinates between the enemy and the player
+        dx = player_x - self.x
+        dy = player_y - self.y
+
+        # Normalize the difference vector 
+        distance = (dx**2 + dy**2)**0.5
+        if distance > 0:
+            normalized_dx = dx / distance
+            normalized_dy = dy / distance
+
+        # Update the enemy's position based on the direction and speed
+        self.x += normalized_dx * enemy_speed
+        self.y += normalized_dy * enemy_speed
+
+        if self.x + self.size/2 >= self.game.screen_width:
+            self.__dx *= -1  # Reverse x on hitting right 
+        elif self.x - self.size/2 <= 0:
+            self.__dx *= -1  # Reverse x on hitting left 
+
+        if self.y + self.size/2 >= self.game.screen_height:
+            self.__dy *= -1  # Reverse y on hitting top 
+        elif self.y - self.size/2 <= 0:
+            self.__dy *= -1  # Reverse y on hitting bottom
+
+        if self.hits_player():
+            self.game.game_over_lose()
+
 
     def render(self) -> None:
         self.canvas.coords(self.__id,
