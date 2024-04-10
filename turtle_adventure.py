@@ -281,14 +281,6 @@ class DemoEnemy(Enemy):
     def delete(self) -> None:
         pass
 
-
-# TODO
-# Complete the EnemyGenerator class by inserting code to generate enemies
-# based on the given game level; call TurtleAdventureGame's add_enemy() method
-# to add enemies to the game at certain points in time.
-#
-# Hint: the 'game' parameter is a tkinter's frame, so it's after()
-# method can be used to schedule some future events.
 class EnemyGenerator:
     """
     An EnemyGenerator instance is responsible for creating enemies of various
@@ -301,8 +293,8 @@ class EnemyGenerator:
 
         self.__game.after(1000, self.create_random_enemy)
         self.__game.after(2000, self.create_chasing_enemy)
-        self.__game.after(3000, self.create_chasing_enemy)
-        self.__game.after(4000, self.create_chasing_enemy)
+        self.__game.after(3000, self.create_fencing_enemy)
+        self.__game.after(4000, self.create_teleporting_enemy)
 
     @property
     def game(self) -> "TurtleAdventureGame":
@@ -343,13 +335,13 @@ class EnemyGenerator:
                     fencing_enemy.y = random.randint(self.__game.home.y - max_distance_from_home, self.__game.home.y + max_distance_from_home)
                 self.__game.add_enemy(fencing_enemy)
     def create_teleporting_enemy(self):
-            for _ in range(15):
+            for _ in range(5):
                 teleporting_enemy = TeleportingEnemy(self.__game, size=20, color="black")
                 if teleporting_enemy.x != 100 and teleporting_enemy.y != 100:
                     teleporting_enemy.x = random.randint(0, self.__game.screen_width)
                     teleporting_enemy.y = random.randint(0, self.__game.screen_height)
                 self.__game.add_enemy(teleporting_enemy)
-            self.__game.after(10, self.create_teleporting_enemy)
+            self.__game.after(500, self.create_teleporting_enemy)
         
 class RandomWalkEnemy(Enemy):
     """
