@@ -3,6 +3,7 @@ The turtle_adventure module maintains all classes related to the Turtle's
 adventure game.
 """
 import random
+import math
 from turtle import RawTurtle
 from gamelib import Game, GameElement
 
@@ -333,28 +334,30 @@ class EnemyGenerator:
         #     self.game.add_element(random_enemy)
 
         # Chasing Enemy
-        # for i in range(10):
-        #     chasing_enemy = ChasingEnemy(self.__game, 20, "orange")
-        #     if chasing_enemy.x != 100 and chasing_enemy.y != 100:
-        #             chasing_enemy.x = random.randint(0, 700)
-        #             chasing_enemy.y = random.randint(0, 400)
-        #     self.game.add_element(chasing_enemy)
+        chasing_enemy = ChasingEnemy(self.__game, size=20, color="purple")
+        chasing_enemy.x = random.randint(0, self.__game.screen_width)
+        chasing_enemy.y = random.randint(0, self.__game.screen_height)
+        self.__game.add_enemy(chasing_enemy)
+        self.__game.after(2000, self.create_enemy)
 
         # Fencing Enemy
-        max_distance_from_home = 25
-        for _ in range(15):
-            fencing_enemy = FencingEnemy(self.__game, 20, "blue")
-            # Generate random positions around the home within a certain distance range
-            if fencing_enemy.x != self.game.home.x and fencing_enemy.y != self.game.home.y:
-                fencing_enemy.x = random.randint(self.__game.home.x - max_distance_from_home, self.__game.home.x + max_distance_from_home)
-                fencing_enemy.y = random.randint(self.__game.home.y - max_distance_from_home, self.__game.home.y + max_distance_from_home)
-            # Ensure the enemy is not inside the home
-            while self.__game.home.contains(fencing_enemy.x, fencing_enemy.y):
-                fencing_enemy.x = random.randint(self.__game.home.x - max_distance_from_home, self.__game.home.x + max_distance_from_home)
-                fencing_enemy.y = random.randint(self.__game.home.y - max_distance_from_home, self.__game.home.y + max_distance_from_home)
-            self.__game.add_enemy(fencing_enemy)
+        # max_distance_from_home = 25
+        # for _ in range(15):
+        #     fencing_enemy = FencingEnemy(self.__game, 20, "blue")
+        #     # Generate random positions around the home within a certain distance range
+        #     if fencing_enemy.x != self.game.home.x and fencing_enemy.y != self.game.home.y:
+        #         fencing_enemy.x = random.randint(self.__game.home.x - max_distance_from_home, self.__game.home.x + max_distance_from_home)
+        #         fencing_enemy.y = random.randint(self.__game.home.y - max_distance_from_home, self.__game.home.y + max_distance_from_home)
+        #     # Ensure the enemy is not inside the home
+        #     while self.__game.home.contains(fencing_enemy.x, fencing_enemy.y):
+        #         fencing_enemy.x = random.randint(self.__game.home.x - max_distance_from_home, self.__game.home.x + max_distance_from_home)
+        #         fencing_enemy.y = random.randint(self.__game.home.y - max_distance_from_home, self.__game.home.y + max_distance_from_home)
+        #     self.__game.add_enemy(fencing_enemy)
 
-
+        # 
+        
+        
+        
 class RandomEnemy(Enemy):
     """
     Random enemy that walks in different directions and bounces off edges
@@ -368,7 +371,7 @@ class RandomEnemy(Enemy):
         self.__id = None
         self.__dx = 0  # Change in x-coordinate (speed in x-direction)
         self.__dy = 0  # Change in y-coordinate (speed in y-direction)
-        self.__speed = 1  # Overall speed of the enemy
+        self.__speed = 3  # Overall speed of the enemy
 
     def create(self) -> None:
         self.__id = self.canvas.create_oval(0, 0, 0, 0, fill='red')
@@ -424,12 +427,10 @@ class ChasingEnemy(Enemy):
     Chasing enemy
     """
 
-    def __init__(self,
-                game: "TurtleAdventureGame",
-                size: int,
-                color: str):
+    def __init__(self, game: "TurtleAdventureGame", size: int, color: str):
         super().__init__(game, size, color)
         self.__id = None
+        self.__speed = 4  # Adjust speed as needed
 
     def create(self) -> None:
         self.__id = self.canvas.create_oval(0, 0, 0, 0, fill=self.color)
@@ -437,35 +438,23 @@ class ChasingEnemy(Enemy):
     def update(self) -> None:
         player_x = self.game.player.x
         player_y = self.game.player.y
-        enemy_speed = 2
+        enemy_speed = self.__speed
 
-        # x and y coordinates between the enemy and the player
+        # Calculate the vector from enemy to player
         dx = player_x - self.x
         dy = player_y - self.y
 
-        # Normalize the difference vector 
+        # Move towards the player along the normalized vector
         distance = (dx**2 + dy**2)**0.5
         if distance > 0:
             normalized_dx = dx / distance
             normalized_dy = dy / distance
 
-        # Update the enemy's position based on the direction and speed
-        self.x += normalized_dx * enemy_speed
-        self.y += normalized_dy * enemy_speed
-
-        if self.x + self.size/2 >= self.game.screen_width:
-            self.__dx *= -1  # Reverse x on hitting right 
-        elif self.x - self.size/2 <= 0:
-            self.__dx *= -1  # Reverse x on hitting left 
-
-        if self.y + self.size/2 >= self.game.screen_height:
-            self.__dy *= -1  # Reverse y on hitting top 
-        elif self.y - self.size/2 <= 0:
-            self.__dy *= -1  # Reverse y on hitting bottom
+            self.x += normalized_dx * enemy_speed
+            self.y += normalized_dy * enemy_speed
 
         if self.hits_player():
             self.game.game_over_lose()
-
 
     def render(self) -> None:
         self.canvas.coords(self.__id,
@@ -535,6 +524,10 @@ class FencingEnemy(Enemy):
     def delete(self) -> None:
         pass
 
+class SmartEnemy(Enemy):
+    pass
+
+    
 
 class TurtleAdventureGame(Game): # pylint: disable=too-many-ancestors
     """
