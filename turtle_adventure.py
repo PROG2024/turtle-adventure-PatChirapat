@@ -333,12 +333,26 @@ class EnemyGenerator:
         #     self.game.add_element(random_enemy)
 
         # Chasing Enemy
-        for i in range(10):
-            chasing_enemy = ChasingEnemy(self.__game, 20, "orange")
-            if chasing_enemy.x != 100 and chasing_enemy.y != 100:
-                    chasing_enemy.x = random.randint(0, 700)
-                    chasing_enemy.y = random.randint(0, 400)
-            self.game.add_element(chasing_enemy)
+        # for i in range(10):
+        #     chasing_enemy = ChasingEnemy(self.__game, 20, "orange")
+        #     if chasing_enemy.x != 100 and chasing_enemy.y != 100:
+        #             chasing_enemy.x = random.randint(0, 700)
+        #             chasing_enemy.y = random.randint(0, 400)
+        #     self.game.add_element(chasing_enemy)
+
+        # Fencing Enemy
+        max_distance_from_home = 25
+        for _ in range(15):
+            fencing_enemy = FencingEnemy(self.__game, 20, "blue")
+            # Generate random positions around the home within a certain distance range
+            if fencing_enemy.x != self.game.home.x and fencing_enemy.y != self.game.home.y:
+                fencing_enemy.x = random.randint(self.__game.home.x - max_distance_from_home, self.__game.home.x + max_distance_from_home)
+                fencing_enemy.y = random.randint(self.__game.home.y - max_distance_from_home, self.__game.home.y + max_distance_from_home)
+            # Ensure the enemy is not inside the home
+            while self.__game.home.contains(fencing_enemy.x, fencing_enemy.y):
+                fencing_enemy.x = random.randint(self.__game.home.x - max_distance_from_home, self.__game.home.x + max_distance_from_home)
+                fencing_enemy.y = random.randint(self.__game.home.y - max_distance_from_home, self.__game.home.y + max_distance_from_home)
+            self.__game.add_enemy(fencing_enemy)
 
 
 class RandomEnemy(Enemy):
@@ -465,29 +479,58 @@ class ChasingEnemy(Enemy):
 
 class FencingEnemy(Enemy):
     """
-    Fencing enemy
+    Fencing enemy that moves around the home in a square form
     """
 
-    def __init__(self,
-                game: "TurtleAdventureGame",
-                size: int,
-                color: str):
+    def __init__(self, game: "TurtleAdventureGame", size: int, color: str):
         super().__init__(game, size, color)
         self.__id = None
+        self.__speed = 4  # Adjust speed as needed
+        self.__direction = "right"  # Initial movement direction
 
     def create(self) -> None:
         self.__id = self.canvas.create_oval(0, 0, 0, 0, fill=self.color)
 
     def update(self) -> None:
-        pass
-        #in progress
+        # Determine the boundaries of the square around the home
+        home_x, home_y = self.game.home.x, self.game.home.y
+        square_size = 80  # Adjust the size of the square as needed
+        square_left = home_x - square_size / 2
+        square_right = home_x + square_size / 2
+        square_top = home_y - square_size / 2
+        square_bottom = home_y + square_size / 2
+
+        # Move the enemy based on the current direction
+        if self.__direction == "right":
+            self.x += self.__speed
+            if self.x >= square_right:
+                self.x = square_right
+                self.__direction = "down"
+        elif self.__direction == "down":
+            self.y += self.__speed
+            if self.y >= square_bottom:
+                self.y = square_bottom
+                self.__direction = "left"
+        elif self.__direction == "left":
+            self.x -= self.__speed
+            if self.x <= square_left:
+                self.x = square_left
+                self.__direction = "up"
+        elif self.__direction == "up":
+            self.y -= self.__speed
+            if self.y <= square_top:
+                self.y = square_top
+                self.__direction = "right"
+
+        if self.hits_player():
+            self.game.game_over_lose()
 
     def render(self) -> None:
         self.canvas.coords(self.__id,
-                            self.x - self.size/2,
-                            self.y - self.size/2,
-                            self.x + self.size/2,
-                            self.y + self.size/2)
+                        self.x - self.size / 2,
+                        self.y - self.size / 2,
+                        self.x + self.size / 2,
+                        self.y + self.size / 2)
 
     def delete(self) -> None:
         pass
