@@ -2,6 +2,8 @@
 The turtle_adventure module maintains all classes related to the Turtle's
 adventure game.
 """
+import random
+import math
 from turtle import RawTurtle
 from gamelib import Game, GameElement
 
@@ -116,11 +118,11 @@ class Home(TurtleGameElement):
         pass
 
     def render(self) -> None:
-        self.canvas.coords(self.__id,
-                           self.x - self.size/2,
-                           self.y - self.size/2,
-                           self.x + self.size/2,
-                           self.y + self.size/2)
+        self.canvas.coords(self.__id, 
+        self.x - self.size/2, 
+        self.y - self.size/2, 
+        self.x + self.size/2, 
+        self.y + self.size/2)
 
     def contains(self, x: float, y: float):
         """
@@ -137,9 +139,9 @@ class Player(TurtleGameElement):
     """
 
     def __init__(self,
-                 game: "TurtleAdventureGame",
-                 turtle: RawTurtle,
-                 speed: float = 5):
+    game: "TurtleAdventureGame",
+    turtle: RawTurtle,
+    speed: float = 5):
         super().__init__(game)
         self.__speed: float = speed
         self.__turtle: RawTurtle = turtle
@@ -210,9 +212,9 @@ class Enemy(TurtleGameElement):
     """
 
     def __init__(self,
-                 game: "TurtleAdventureGame",
-                 size: int,
-                 color: str):
+                game: "TurtleAdventureGame",
+                size: int,
+                color: str):
         super().__init__(game)
         self.__size = size
         self.__color = color
@@ -254,31 +256,30 @@ class DemoEnemy(Enemy):
     """
 
     def __init__(self,
-                 game: "TurtleAdventureGame",
-                 size: int,
-                 color: str):
+                game: "TurtleAdventureGame",
+                size: int,
+                color: str):
         super().__init__(game, size, color)
+        self.__id = None
 
     def create(self) -> None:
-        pass
+        self.__id = self.canvas.create_oval(0, 0, 0, 0, fill=self.color)
 
     def update(self) -> None:
-        pass
+        self.x += 1
+        self.y += 1
+        if self.hits_player():
+            self.game.game_over_lose()
 
     def render(self) -> None:
-        pass
+        self.canvas.coords(self.__id,
+                            self.x - self.size/2,
+                            self.y - self.size/2,
+                            self.x + self.size/2,
+                            self.y + self.size/2)
 
     def delete(self) -> None:
         pass
-
-
-# TODO
-# Complete the EnemyGenerator class by inserting code to generate enemies
-# based on the given game level; call TurtleAdventureGame's add_enemy() method
-# to add enemies to the game at certain points in time.
-#
-# Hint: the 'game' parameter is a tkinter's frame, so it's after()
-# method can be used to schedule some future events.
 
 class EnemyGenerator:
     """
@@ -290,8 +291,10 @@ class EnemyGenerator:
         self.__game: TurtleAdventureGame = game
         self.__level: int = level
 
-        # example
-        self.__game.after(100, self.create_enemy)
+        self.__game.after(1000, self.create_random_enemy)
+        self.__game.after(2000, self.create_chasing_enemy)
+        self.__game.after(3000, self.create_fencing_enemy)
+        self.__game.after(4000, self.create_teleporting_enemy)
 
     @property
     def game(self) -> "TurtleAdventureGame":
@@ -307,14 +310,249 @@ class EnemyGenerator:
         """
         return self.__level
 
-    def create_enemy(self) -> None:
+    def create_random_enemy(self):
+            random_enemy = RandomWalkEnemy(self.__game, 20, "red")
+            if random_enemy.x != 100 and random_enemy.y != 100:
+                random_enemy.x = random.randint(0, 700)
+                random_enemy.y = random.randint(0, 400)
+            self.game.add_element(random_enemy)
+            self.game.after(1000, self.create_random_enemy)
+    def create_chasing_enemy(self):
+            chasing_enemy = ChasingEnemy(self.__game, size=20, color="purple")
+            chasing_enemy.x = random.randint(0, self.__game.screen_width)
+            chasing_enemy.y = random.randint(0, self.__game.screen_height)
+            self.__game.add_enemy(chasing_enemy)
+            self.__game.after(1000, self.create_chasing_enemy)
+    def create_fencing_enemy(self):
+            max_distance_from_home = 25
+            for i in range(15):
+                fencing_enemy = FencingEnemy(self.__game, 20, "blue")
+                if fencing_enemy.x != self.game.home.x and fencing_enemy.y != self.game.home.y:
+                    fencing_enemy.x = random.randint(self.__game.home.x - max_distance_from_home, self.__game.home.x + max_distance_from_home)
+                    fencing_enemy.y = random.randint(self.__game.home.y - max_distance_from_home, self.__game.home.y + max_distance_from_home)
+                while self.__game.home.contains(fencing_enemy.x, fencing_enemy.y):
+                    fencing_enemy.x = random.randint(self.__game.home.x - max_distance_from_home, self.__game.home.x + max_distance_from_home)
+                    fencing_enemy.y = random.randint(self.__game.home.y - max_distance_from_home, self.__game.home.y + max_distance_from_home)
+                self.__game.add_enemy(fencing_enemy)
+    def create_teleporting_enemy(self):
+            for _ in range(5):
+                teleporting_enemy = TeleportingEnemy(self.__game, size=20, color="black")
+                if teleporting_enemy.x != 100 and teleporting_enemy.y != 100:
+                    teleporting_enemy.x = random.randint(0, self.__game.screen_width)
+                    teleporting_enemy.y = random.randint(0, self.__game.screen_height)
+                self.__game.add_enemy(teleporting_enemy)
+            self.__game.after(500, self.create_teleporting_enemy)
+        
+class RandomWalkEnemy(Enemy):
+    """
+    Random enemy that walks in different directions and bounces off edges
+    """
+
+    def __init__(self,
+                game: "TurtleAdventureGame",
+                size: int,
+                color: str):
+        super().__init__(game, size, color)
+        self.__id = None
+        self.__dx = 0  # Change in x-coordinate (speed in x-direction)
+        self.__dy = 0  # Change in y-coordinate (speed in y-direction)
+        self.__speed = 3  # Overall speed of the enemy
+
+    def create(self) -> None:
+        self.__id = self.canvas.create_oval(0, 0, 0, 0, fill='red')
+        self.__choose_random_direction()
+
+    def update(self) -> None:
+        self.x += self.__dx
+        self.y += self.__dy
+
+        if self.x + self.size/2 >= self.game.screen_width:
+            self.__dx *= -1  # Reverse x on hitting right 
+        elif self.x - self.size/2 <= 0:
+            self.__dx *= -1  # Reverse x on hitting left 
+
+        if self.y + self.size/2 >= self.game.screen_height:
+            self.__dy *= -1  # Reverse y on hitting top 
+        elif self.y - self.size/2 <= 0:
+            self.__dy *= -1  # Reverse y on hitting bottom
+
+        if self.hits_player():
+            self.game.game_over_lose()
+
+    def render(self) -> None:
+        self.canvas.coords(self.__id,
+                            self.x - self.size/2,
+                            self.y - self.size/2,
+                            self.x + self.size/2,
+                            self.y + self.size/2)
+
+    def delete(self) -> None:
+        pass
+
+    def __choose_random_direction(self):
         """
-        Create a new enemy, possibly based on the game level
+        Chooses a random direction (up, down, left, or right) for the enemy to walk.
         """
-        new_enemy = DemoEnemy(self.__game, 20, "red")
-        new_enemy.x = 100
-        new_enemy.y = 100
-        self.game.add_element(new_enemy)
+        direction = random.choice(["up", "down", "left", "right"])
+        if direction == "up":
+            self.__dx = 0
+            self.__dy = self.__speed
+        elif direction == "down":
+            self.__dx = 0
+            self.__dy = -self.__speed
+        elif direction == "left":
+            self.__dx = -self.__speed
+            self.__dy = 0
+        else: 
+            self.__dx = self.__speed
+            self.__dy = 0
+
+class ChasingEnemy(Enemy):
+    """
+    Chasing enemy
+    """
+
+    def __init__(self, game: "TurtleAdventureGame", size: int, color: str):
+        super().__init__(game, size, color)
+        self.__id = None
+        self.__speed = 4  # Adjust speed as needed
+
+    def create(self) -> None:
+        self.__id = self.canvas.create_oval(0, 0, 0, 0, fill=self.color)
+
+    def update(self) -> None:
+        player_x = self.game.player.x
+        player_y = self.game.player.y
+        enemy_speed = self.__speed
+
+        # Calculate the vector from enemy to player
+        dx = player_x - self.x
+        dy = player_y - self.y
+
+        # Move towards the player along the normalized vector
+        distance = (dx**2 + dy**2)**0.5
+        if distance > 0:
+            normalized_dx = dx / distance
+            normalized_dy = dy / distance
+
+            self.x += normalized_dx * enemy_speed
+            self.y += normalized_dy * enemy_speed
+
+        if self.hits_player():
+            self.game.game_over_lose()
+
+    def render(self) -> None:
+        self.canvas.coords(self.__id,
+                            self.x - self.size/2,
+                            self.y - self.size/2,
+                            self.x + self.size/2,
+                            self.y + self.size/2)
+
+    def delete(self) -> None:
+        pass
+
+class FencingEnemy(Enemy):
+    """
+    Fencing enemy that moves around the home in a square form
+    """
+
+    def __init__(self, game: "TurtleAdventureGame", size: int, color: str):
+        super().__init__(game, size, color)
+        self.__id = None
+        self.__speed = 4  # Adjust speed as needed
+        self.__direction = "right"  # Initial movement direction
+
+    def create(self) -> None:
+        self.__id = self.canvas.create_oval(0, 0, 0, 0, fill=self.color)
+
+    def update(self) -> None:
+        # Determine the boundaries of the square around the home
+        home_x, home_y = self.game.home.x, self.game.home.y
+        square_size = 80  # Adjust the size of the square as needed
+        square_left = home_x - square_size / 2
+        square_right = home_x + square_size / 2
+        square_top = home_y - square_size / 2
+        square_bottom = home_y + square_size / 2
+
+        # Move the enemy based on the current direction
+        if self.__direction == "right":
+            self.x += self.__speed
+            if self.x >= square_right:
+                self.x = square_right
+                self.__direction = "down"
+        elif self.__direction == "down":
+            self.y += self.__speed
+            if self.y >= square_bottom:
+                self.y = square_bottom
+                self.__direction = "left"
+        elif self.__direction == "left":
+            self.x -= self.__speed
+            if self.x <= square_left:
+                self.x = square_left
+                self.__direction = "up"
+        elif self.__direction == "up":
+            self.y -= self.__speed
+            if self.y <= square_top:
+                self.y = square_top
+                self.__direction = "right"
+
+        if self.hits_player():
+            self.game.game_over_lose()
+
+    def render(self) -> None:
+        self.canvas.coords(self.__id,
+                        self.x - self.size / 2,
+                        self.y - self.size / 2,
+                        self.x + self.size / 2,
+                        self.y + self.size / 2)
+
+    def delete(self) -> None:
+        pass    
+
+class TeleportingEnemy(Enemy):
+    """
+    Teleporting Enemy appears near the player or home randomly.
+    """
+
+    def __init__(self, game: "TurtleAdventureGame", size: int, color: str):
+        super().__init__(game, size, color)
+        self.__id = None
+        self.__teleport_cooldown = 60  # Cooldown between teleports (in frames)
+        self.__teleport_counter = 0
+
+    def create(self) -> None:
+        self.__id = self.canvas.create_rectangle(0, 0, 0, 0, fill=self.color)
+
+    def update(self) -> None:
+        self.__teleport_counter += 1
+        if self.__teleport_counter >= self.__teleport_cooldown:
+            self.teleport()
+            self.__teleport_counter = 0
+
+        if self.hits_player():
+            self.game.game_over_lose()
+
+    def render(self) -> None:
+        self.canvas.coords(self.__id,
+                        self.x - self.size / 2,
+                        self.y - self.size / 2,
+                        self.x + self.size / 2,
+                        self.y + self.size / 2)
+
+    def delete(self) -> None:
+        pass
+
+    def teleport(self) -> None:
+        """
+        Teleport the enemy near the player or home randomly.
+        """
+        choice = random.choice(["player", "home"])
+        if choice == "player":
+            self.x = self.game.player.x + random.randint(-200, 200)
+            self.y = self.game.player.y + random.randint(-200, 200)
+        else:
+            self.x = self.game.home.x + random.randint(-200, 200)
+            self.y = self.game.home.y + random.randint(-200, 200)
 
 
 class TurtleAdventureGame(Game): # pylint: disable=too-many-ancestors
@@ -383,3 +621,5 @@ class TurtleAdventureGame(Game): # pylint: disable=too-many-ancestors
                                 text="You Lose",
                                 font=font,
                                 fill="red")
+    
+    
